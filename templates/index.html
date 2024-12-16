@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Query System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* General Reset */
+        body, h1, h2, p, form, input, button, div {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1, h2 {
+            color: #444;
+        }
+
+        /* Container for the entire page */
+        .container {
+            max-width: 800px;
+            width: 100%;
+            margin: 20px auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Header */
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: #0056d6;
+        }
+
+        /* Forms styling */
+        form {
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input[type="file"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #0056d6;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #003a99;
+        }
+
+        /* Dynamic result section */
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.95rem;
+            color: #333;
+        }
+
+        #result p {
+            margin-bottom: 10px;
+        }
+
+        #result h3 {
+            margin-top: 10px;
+            color: #0056d6;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PDF Query System</h1>
+
+        <!-- Form for uploading PDF -->
+        <form action="/upload" method="POST" enctype="multipart/form-data" id="uploadForm">
+            <label for="file">Choose a PDF to upload:</label>
+            <input type="file" name="file" id="file" accept=".pdf" required>
+            <button type="submit">Upload PDF</button>
+        </form>
+
+        <!-- Query Form -->
+        <h2>Ask a Question</h2>
+        <form id="queryForm">
+            <input type="text" name="query" id="query" placeholder="Enter your question here" required>
+            <button type="submit">Ask</button>
+        </form>
+
+        <!-- Dynamic Results -->
+        <div id="result"></div>
+    </div>
+
+    <footer>
+        &copy; 2024 PDF Query System. All rights reserved.
+    </footer>
+
+    <script>
+        // Handle the upload form submission
+        document.getElementById('uploadForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('result');
+                if (data.message) {
+                    resultDiv.innerHTML = `<p>${data.message}</p>`;
+                } else if (data.error) {
+                    resultDiv.innerHTML = `<p style="color: red;">${data.error}</p>`;
+                }
+            })
+            .catch(error => console.error('Error uploading file:', error));
+        });
+
+        // Handle the query form submission
+        document.getElementById('queryForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const queryText = document.getElementById('query').value;
+
+            fetch('/query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({ query: queryText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('result');
+                if (data.error) {
+                    resultDiv.innerHTML = `<p style="color: red;">${data.error}</p>`;
+                } else {
+                    let output = `<h3>Answer:</h3><p>${data.answer}</p>`;
+                    if (data.is_table_request && data.table_data) {
+                        output += `<h3>Table Data:</h3>${data.table_data}`;
+                    }
+                    output += `<h3>Context:</h3><p>${data.context}</p>`;
+                    resultDiv.innerHTML = output;
+                }
+            })
+            .catch(error => console.error('Error fetching query result:', error));
+        });
+    </script>
+</body>
+</html>
